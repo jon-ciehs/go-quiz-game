@@ -4,12 +4,16 @@ import (
 	"encoding/csv"
 	"flag"
 	"fmt"
+	"math/rand"
 	"os"
 	"strings"
+	"time"
 )
 
 func main() {
 	csvFilename := flag.String("csv", "problems.csv", "a csv file in the format of 'question,answer'")
+	timeLimit := flag.Int("time-limit", 30, "the time limit in seconds for the quiz")
+	shuffle := flag.Bool("shuffle", false, "shuffle the problems of the CSV file")
 	flag.Parse()
 	file, err := os.Open(*csvFilename)
 	if err != nil {
@@ -22,16 +26,36 @@ func main() {
 	}
 	problems := parseLines(lines)
 
-	correct := 0
-	for i, problem := range problems {
-		fmt.Printf("Problem #%d: %s = \n", i+1, problem.q)
-		var answer string
-		fmt.Scanf("%s\n", &answer)
-		if answer == problem.a {
-			correct++
-		}
+	if *shuffle {
+		rand.Shuffle(len(problems), func(i, j int) {
+			problems[i], problems[j] = problems[j], problems[i]
+		})
 	}
 
+	timer := time.NewTimer(time.Duration(*timeLimit) * time.Second)
+
+	correct := 0
+problemloop:
+	for i, problem := range problems {
+		fmt.Printf("Problem #%d: %s = \n", i+1, problem.q)
+		answerCh := make(chan string)
+
+		go func() {
+			var answer string
+			fmt.Scanf("%s\n", &answer)
+			answerCh <- answer
+		}()
+
+		select {
+		case <-timer.C:
+			fmt.Println()
+			break problemloop
+		case answer := <-answerCh:
+			if answer == problem.a {
+				correct++
+			}
+		}
+	}
 	fmt.Printf("You scored %d out of %d\n", correct, len(lines))
 }
 
