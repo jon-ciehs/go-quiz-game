@@ -51,7 +51,7 @@ problemloop:
 			fmt.Println()
 			break problemloop
 		case answer := <-answerCh:
-			if answer == problem.a {
+			if strings.ToLower(answer) == problem.a {
 				correct++
 			}
 		}
@@ -68,8 +68,8 @@ func parseLines(lines [][]string) []problem {
 	ret := make([]problem, len(lines))
 	for i, line := range lines {
 		ret[i] = problem{
-			q: strings.TrimSpace(line[0]),
-			a: strings.TrimSpace(line[1]),
+			q: line[0],
+			a: strings.ToLower(strings.TrimSpace(line[1])),
 		}
 	}
 	return ret
